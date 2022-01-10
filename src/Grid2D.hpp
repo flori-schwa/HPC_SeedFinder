@@ -21,11 +21,11 @@ public:
     }
 
     T& at(int x, int y) {
-        return this->data[y * this->height + x];
+        return this->data[y * this->width + x];
     }
 
     T* ptr_at(int x, int y) {
-        return this->data + (y * this->height + x);
+        return this->data + (y * this->width + x);
     }
 
 };

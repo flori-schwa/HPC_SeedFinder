@@ -9,7 +9,7 @@
 
 class CPUSlimeChunkFinder : public ISlimeChunkFinder {
 
-    void look_for_slime_chunks(jlong seed, jint start_cx, jint start_cz, Grid2D<bool> &result) override;
+    void look_for_slime_chunks(const jlong seed, const jint start_cx, const jint start_cz, Grid2D<bool>* result) override;
 
 };
 

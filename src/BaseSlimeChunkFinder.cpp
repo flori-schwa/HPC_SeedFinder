@@ -1,7 +1,5 @@
 #include "BaseSlimeChunkFinder.hpp"
 
-#include <iostream>
-
 // https://github.com/openjdk/jdk/blob/master/src/java.base/share/classes/java/util/Random.java
 class JRandom {
 private:
@@ -44,6 +42,7 @@ public:
 
     jint nextInt(jint bound) {
         jint r = next(31);
+
         jint m = bound - 1;
 
         if ((bound & m) == 0) { // power of 2
@@ -62,21 +61,17 @@ public:
 bool is_slime_chunk(jlong seed, jint x, jint z) {
     return JRandom(
             seed +
-            (jint) (x * x * 0x4c1906) +
-            (jint) (x * 0x5ac0db) +
-            (jint) (z * z * 0x4307a7L) +
-            (jint) (z * 0x5f24f) ^ 0x3ad8025fL
-    ).nextInt(10) == 0;
+            (jlong) (x * x * 0x4c1906) +
+            (jlong) (x * 0x5ac0db) +
+            (jlong) (z * z) * 0x4307a7L +
+            (jlong) (z * 0x5f24f) ^ 0x3ad8025fL).nextInt(10) == 0;
 }
 
-/*
- * Single threaded 1000x1000: Duration: 0.007748 [s]
- * Multi threaded 1000x1000: Duration:  0.001737 [s]
- */
-void BaseSlimeChunkFinder::look_for_slime_chunks(jlong seed, jint start_cx, jint start_cz, Grid2D<bool>& result) {
-    for (jint z = 0; z < result.height; ++z) {
-        for (jint x = 0; x < result.width; ++x) {
-            result.at(x, z) = is_slime_chunk(seed, start_cx + x, start_cz + z);
+void BaseSlimeChunkFinder::look_for_slime_chunks(const jlong seed, const jint start_cx, const jint start_cz,
+                                                 Grid2D<bool> *result) {
+    for (jint z = 0; z < result->height; ++z) {
+        for (jint x = 0; x < result->width; ++x) {
+            result->at(x, z) = is_slime_chunk(seed, start_cx + x, start_cz + z);
         }
     }
 }

@@ -6,7 +6,7 @@
 class BaseSlimeChunkFinder : public ISlimeChunkFinder {
 public:
     void
-    look_for_slime_chunks(jlong seed, jint start_cx, jint start_cz, Grid2D<bool>& result) override;
+    look_for_slime_chunks(const jlong seed, const jint start_cx, const jint start_cz, Grid2D<bool>* result) override;
 };
 
 

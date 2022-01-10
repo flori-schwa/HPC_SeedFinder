@@ -21,8 +21,8 @@ int main() {
 //
 //    jint width = 1, height = 1;
 
-    jint start_x = -10;
-    jint start_z = -10;
+    jint start_x = 0;
+    jint start_z = 0;
 
     jint width = 10000, height = 10000;
 
@@ -36,27 +36,21 @@ int main() {
         }
 
         MEASURE_BEGIN;
-        algos[algo_num]->look_for_slime_chunks(seed, start_x, start_z, *results[algo_num]);
+        algos[algo_num]->look_for_slime_chunks(seed, start_x, start_z, results[algo_num]);
         MEASURE_END;
 
         MEASURE_PRINT("Slime Chunk Finder");
     }
-
-    Grid2D<bool> check(width, height);
 
     for (int algo_num = 0; algo_num < ALGO_COUNT; algo_num++) {
         bool err_notified = false;
 
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
-                if (algo_num == 0) {
-                    check.at(x, y) = results[algo_num]->at(x, y);
-//                    std::cout << results[algo_num]->at(x, y) << " ";
-                } else {
-                    if ((check.at(x, y) ^= results[algo_num]->at(x, y)) && !err_notified) {
-                        std::cout << "Algorithm #" << algo_num << " produced erroneous output at position (" << (start_x + x) << ", " << (start_z + y) << ") for seed " << seed << std::endl;
-                        err_notified = true;
-                    }
+                if ((results[0]->at(x, y) ^ results[algo_num]->at(x, y)) && !err_notified) {
+                    std::cout << "Algorithm #" << algo_num << " produced erroneous output at position (" << (start_x + x) << ", " << (start_z + y) << ") for seed " << seed << std::endl;
+                    std::cout << "Expected " << results[0]->at(x, y) << ", got " << results[algo_num]->at(x, y) << std::endl;
+                    err_notified = true;
                 }
             }
 
