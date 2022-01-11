@@ -1,7 +1,3 @@
-//
-// Created by flori on 10/01/2022.
-//
-
 #ifndef MCSEEDS_GRID2D_HPP
 #define MCSEEDS_GRID2D_HPP
 
