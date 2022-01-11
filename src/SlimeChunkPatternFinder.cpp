@@ -1,4 +1,4 @@
-#include "SlimeChunkPatternFinder.hpp"
+#include "include/SlimeChunkPatternFinder.hpp"
 
 
 

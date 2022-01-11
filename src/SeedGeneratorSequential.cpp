@@ -1,4 +1,4 @@
-#include "SeedGeneratorSequential.hpp"
+#include "include/SeedGeneratorSequential.hpp"
 
 jlong SeedGeneratorSequential::next_seed() {
     return this->next++;

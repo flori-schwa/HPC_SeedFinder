@@ -1,4 +1,4 @@
-#include "CPUSlimeChunkFinder.hpp"
+#include "include/CPUSlimeChunkFinder.hpp"
 
 static const jlong jrand_multiplier = 0x5DEECE66D;
 static const jlong jrand_addend = 0xB;
