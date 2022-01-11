@@ -60,6 +60,6 @@ void CPUSlimeChunkFinder::look_for_slime_chunks(const jlong seed, const jint sta
             }
         } while (true);
 
-        result->at(x, z) = (r == 0);
+        result->set(x, z, r == 0);
     }
 }
