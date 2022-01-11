@@ -1,7 +1,3 @@
-//
-// Created by flori on 10/01/2022.
-//
-
 #ifndef MCSEEDS_CPUSLIMECHUNKFINDER_HPP
 #define MCSEEDS_CPUSLIMECHUNKFINDER_HPP
 

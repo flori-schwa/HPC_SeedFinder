@@ -1,7 +1,3 @@
-//
-// Created by florian on 10.01.22.
-//
-
 #ifndef MCSEEDS_DEBUG_H
 #define MCSEEDS_DEBUG_H
 

@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 
 #include "ISlimeChunkFinder.hpp"
 #include "CPUSlimeChunkFinder.hpp"
@@ -10,8 +11,11 @@
 #define ALGO_COUNT 1
 
 int main() {
-    ISlimeChunkFinder* algos[ALGO_COUNT] = {nullptr};
-    Grid2D<bool>* results[ALGO_COUNT] = {nullptr};
+    ISlimeChunkFinder* algos[ALGO_COUNT];
+    Grid2D<bool>* results[ALGO_COUNT];
+
+    std::fill_n(algos, ALGO_COUNT, nullptr);
+    std::fill_n(results, ALGO_COUNT, nullptr);
 
     algos[0] = new CPUSlimeChunkFinder();
 
