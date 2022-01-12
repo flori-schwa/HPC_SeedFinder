@@ -6,6 +6,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <omp.h>
 #include "include/perfmeasure.hpp"
 
 #define SEARCH_PATTERN
@@ -22,28 +23,49 @@ int main() {
     SeedGeneratorSequential seqSeedGen;
     CPUSlimeChunkFinder slimeChunkFinder;
 
-    SlimeChunkPatternFinder patternFinder(&seqSeedGen, &slimeChunkFinder, 3, 1);
+    SlimeChunkPatternFinder patternFinder(&seqSeedGen, &slimeChunkFinder, 4, 4);
 
-    patternFinder.desired_pattern.set(0, 0, true);
-    patternFinder.desired_pattern.set(1, 0, true);
-    patternFinder.desired_pattern.set(2, 0, true);
+    patternFinder.desired_pattern.set(0, 0, SlimeFlag::No);
+    patternFinder.desired_pattern.set(1, 0, SlimeFlag::Yes);
+    patternFinder.desired_pattern.set(2, 0, SlimeFlag::Yes);
+    patternFinder.desired_pattern.set(3, 0, SlimeFlag::Yes);
 
-    std::vector<ChunkLocation> results;
+    patternFinder.desired_pattern.set(0, 1, SlimeFlag::Yes);
+    patternFinder.desired_pattern.set(1, 1, SlimeFlag::Yes);
+    patternFinder.desired_pattern.set(2, 1, SlimeFlag::No);
+    patternFinder.desired_pattern.set(3, 1, SlimeFlag::No);
 
-    patternFinder.run_until_found(-500, -500, 1000, 1000, &results);
+    patternFinder.desired_pattern.set(0, 2, SlimeFlag::Yes);
+    patternFinder.desired_pattern.set(1, 2, SlimeFlag::Yes);
+    patternFinder.desired_pattern.set(2, 2, SlimeFlag::Yes);
+    patternFinder.desired_pattern.set(3, 2, SlimeFlag::Yes);
+
+    patternFinder.desired_pattern.set(0, 3, SlimeFlag::No);
+    patternFinder.desired_pattern.set(1, 3, SlimeFlag::Yes);
+    patternFinder.desired_pattern.set(2, 3, SlimeFlag::No);
+    patternFinder.desired_pattern.set(3, 3, SlimeFlag::Yes);
+
+    std::unordered_set<ChunkLocation> results;
+
+    MEASURE_BEGIN;
+    patternFinder.run_until_found(-20000, -20000, 40000, 40000, &results);
+    MEASURE_END;
+    MEASURE_PRINT("Find pattern");
 
     const int limit = 10;
     int count = 0;
 
-    for (const ChunkLocation &foundLocation : results) {
+    for (const ChunkLocation &foundLocation: results) {
         if (++count == limit) {
             break;
         }
 
-        std::cout   << "Seed: " << foundLocation.world_seed << std::endl
-                    << "Chunk X: " << foundLocation.chunk_x << std::endl
-                    << "Chunk Z: " << foundLocation.chunk_z << std::endl
-                    << "================================================" << std::endl;
+        std::cout << "Seed: " << foundLocation.world_seed << std::endl
+                  << "Chunk X: " << foundLocation.chunk_x << std::endl
+                  << "Chunk Z: " << foundLocation.chunk_z << std::endl
+                  << "Block X: " << (foundLocation.chunk_x * 16) << std::endl
+                  << "Block Z: " << (foundLocation.chunk_z * 16) << std::endl
+                  << "================================================" << std::endl;
     }
 
 #else
@@ -99,7 +121,7 @@ int main() {
     input.close();
 
     for (int algo_num = 0; algo_num < ALGO_COUNT; algo_num++) {
-        bool err_notified = false;
+        bool err_notified = SlimeFlag::No;
         long total_errors = 0;
 
         for (int y = 0; y < height; ++y) {

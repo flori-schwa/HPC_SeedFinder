@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="MCSeeds" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$ProjectFileDir$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="MCSeeds" TARGET_NAME="MCSeeds" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="MCSeeds" RUN_TARGET_NAME="MCSeeds">
+  <configuration default="false" name="MCSeeds" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$ProjectFileDir$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="MCSeeds" TARGET_NAME="MCSeeds" CONFIG_NAME="Debug-MSYS2" RUN_TARGET_PROJECT_NAME="MCSeeds" RUN_TARGET_NAME="MCSeeds">
     <method v="2">
       <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
     </method>

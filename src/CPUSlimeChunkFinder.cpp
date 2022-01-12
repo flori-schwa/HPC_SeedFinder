@@ -31,35 +31,40 @@ jint next31(jlong *seed) {
 }
 
 void CPUSlimeChunkFinder::look_for_slime_chunks(const jlong seed, const jint start_cx, const jint start_cz,
-                                                Grid2D<bool> *result) {
+                                                Grid2D<SlimeFlag> *result) {
     const int length = result->width * result->height;
 
-#pragma omp parallel for firstprivate(seed, start_cx, start_cz, length) shared(result) default(none)
-    for (jint i = 0; i < length; ++i) {
-        jint x = i % result->width;
-        jint z = i / result->width;
+#pragma omp parallel for firstprivate(seed, start_cx, start_cz, length) shared(result) default(none) collapse(2)
+#ifndef GRID2D_COL_MAJOR
+    for (int z = 0; z < result->height; ++z) {
+        for (int x = 0; x < result->width; ++x) {
+#else
+    for (int x = 0; x < result->width; ++x) {
+        for (int z = 0; z < result->height; ++z) {
+#endif
 
-        jlong s = slime_seed(seed, x + start_cx, z + start_cz);
+            jlong s = slime_seed(seed, x + start_cx, z + start_cz);
 
-        s = (s ^ jrand_multiplier) & jrand_mask;
-        jint r = next31(&s);
+            s = (s ^ jrand_multiplier) & jrand_mask;
+            jint r = next31(&s);
 
-        const jint bound = 10;
-        const jint m = bound - 1;
+            const jint bound = 10;
+            const jint m = bound - 1;
 
-        jint u = r;
+            jint u = r;
 
-        do {
-            r = u % bound;
+            do {
+                r = u % bound;
 
-            // Handle over- and underflows like java
-            if (((signed) ((unsigned) u - (unsigned) r + (unsigned) m)) < 0) {
-                u = next31(&s);
-            } else {
-                break;
-            }
-        } while (true);
+                // Handle over- and underflows like java
+                if (((signed) ((unsigned) u - (unsigned) r + (unsigned) m)) < 0) {
+                    u = next31(&s);
+                } else {
+                    break;
+                }
+            } while (true);
 
-        result->set(x, z, r == 0);
+            result->set(x, z, r == 0 ? SlimeFlag::Yes : SlimeFlag::No);
+        }
     }
 }
