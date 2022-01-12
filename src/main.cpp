@@ -1,13 +1,14 @@
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include <omp.h>
 
 #include "include/ISlimeChunkFinder.hpp"
 #include "include/CPUSlimeChunkFinder.hpp"
 #include "include/SlimeChunkPatternFinder.hpp"
-
-#include <fstream>
-#include <sstream>
 #include "include/perfmeasure.hpp"
 #include "include/GPUSlimeChunkFinder.hpp"
+#include "include/SeedGeneratorSequential.hpp"
 
 //#define SEARCH_PATTERN
 
@@ -17,47 +18,99 @@
 
 #endif
 
-int main() {
+int main(int argc, char** argv) {
 
 #ifdef SEARCH_PATTERN
+
+    if (argc != 2) {
+        std::cerr << "Syntax: " << argv[0] << " <pattern file>" << std::endl;
+        return 0;
+    }
+
+    std::vector<std::string> lines;
+
+    {
+        std::ifstream in;
+        in.open(argv[1]);
+
+
+        if (in.is_open()) {
+            std::string line;
+
+            while (std::getline(in, line)) {
+                if (!line.empty()) {
+                    lines.push_back(line);
+                }
+            }
+        } else {
+            std::cerr << "Failed to open File \"" << argv[1] << "\"" << std::endl;
+            return 0;
+        }
+
+        in.close();
+    }
+
+    int height = (int) lines.size();
+    int width = (int) lines[0].size();
+
+    for (const auto &item : lines) {
+        if (item.size() != width) {
+            std::cerr << "All lines in pattern input file must have the same length" << std::endl;
+        }
+    }
+
     SeedGeneratorSequential seqSeedGen;
     CPUSlimeChunkFinder slimeChunkFinder;
 
-    algos[0] = new CPUSlimeChunkFinder();
-    algos[1] = new GPUSlimeChunkFinder();
+    SlimeChunkPatternFinder patternFinder(&seqSeedGen, &slimeChunkFinder, width, height);
 
-    const jlong seed = 123L;
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            SlimeFlag flag;
 
-    jint start_x = 0;
-    jint start_z = 0;
+            switch (lines[y][x]) {
+                case '0':
+                    flag = SlimeFlag::No;
+                    break;
+                case '1':
+                    flag = SlimeFlag::Yes;
+                    break;
+                default:
+                    std::cerr << "Cannot parse '" << lines[y][x] << "'" << std::endl;
+                    return 0;
+            }
 
-    jint width = 40000, height = 40000;
-
-//    jint start_x = 363;
-//    jint start_z = 0;
-//
-//    jint width = 1, height = 1000000;
-
-    for (int i = 0; i < ALGO_COUNT; i++) {
-        results[i] = new Grid2D<bool>(width, height);
+            patternFinder.desired_pattern.set(x, y, flag);
+        }
     }
 
-    for (int algo_num = 0; algo_num < ALGO_COUNT; algo_num++) {
-        if (algos[algo_num] == nullptr) {
-            continue;
+    std::unordered_set<ChunkLocation> results;
+
+    MEASURE_BEGIN;
+    patternFinder.run_until_found(-20000, -20000, 40000, 40000, &results);
+    MEASURE_END;
+    MEASURE_PRINT("Find pattern");
+
+    const int limit = 10;
+    int count = 0;
+
+    for (const ChunkLocation &foundLocation: results) {
+        if (++count == limit) {
+            break;
         }
 
-        MEASURE_BEGIN;
-        algos[algo_num]->look_for_slime_chunks(seed, start_x, start_z, results[algo_num]);
-        MEASURE_END;
-
-        MEASURE_PRINT("Slime Chunk Finder");
+        std::cout << "Seed: " << foundLocation.world_seed << std::endl
+                  << "Chunk X: " << foundLocation.chunk_x << std::endl
+                  << "Chunk Z: " << foundLocation.chunk_z << std::endl
+                  << "Block X: " << (foundLocation.chunk_x * 16) << std::endl
+                  << "Block Z: " << (foundLocation.chunk_z * 16) << std::endl
+                  << "================================================" << std::endl;
     }
 
 #else
 
     ISlimeChunkFinder *algos[ALGO_COUNT] = {nullptr};
-    Grid2D<bool> *results[ALGO_COUNT] = {nullptr};
+    Grid2D<SlimeFlag> *results[ALGO_COUNT] = {nullptr};
 
     algos[0] = new CPUSlimeChunkFinder();
     algos[1] = new GPUSlimeChunkFinder();
@@ -70,7 +123,7 @@ int main() {
     jint width = 40000, height = 40000;
 
     for (int i = 0; i < ALGO_COUNT; i++) {
-        results[i] = new Grid2D<bool>(width, height);
+        results[i] = new Grid2D<SlimeFlag>(width, height);
     }
 
     for (int algo_num = 0; algo_num < ALGO_COUNT; algo_num++) {
@@ -108,7 +161,7 @@ int main() {
     input.close();
 
     for (int algo_num = 0; algo_num < ALGO_COUNT; algo_num++) {
-        bool err_notified = false;
+        bool err_notified = SlimeFlag::No;
         long total_errors = 0;
 
         for (int y = 0; y < height; ++y) {

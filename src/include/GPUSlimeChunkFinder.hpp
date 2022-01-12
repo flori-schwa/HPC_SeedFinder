@@ -7,6 +7,7 @@
 
 #include "ISlimeChunkFinder.hpp"
 #include "javatypes.hpp"
+#include "slimes.hpp"
 
 
 #define EXPECTED_PLATFORMS 3
@@ -23,7 +24,7 @@ private:
 public:
     GPUSlimeChunkFinder();
 
-    void look_for_slime_chunks(jlong seed, jint start_cx, jint start_cz, Grid2D<bool>* result) override;
+    void look_for_slime_chunks(jlong seed, jint start_cx, jint start_cz, Grid2D<SlimeFlag>* result) override;
 };
 
 

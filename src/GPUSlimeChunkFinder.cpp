@@ -117,7 +117,7 @@ void GPUSlimeChunkFinder::UseDevice(cl_device_id dev) {
     this->init_ok = true;
 }
 
-void GPUSlimeChunkFinder::look_for_slime_chunks(const jlong seed, const jint start_cx, const jint start_cz, Grid2D<bool>* result) {
+void GPUSlimeChunkFinder::look_for_slime_chunks(const jlong seed, const jint start_cx, const jint start_cz, Grid2D<SlimeFlag>* result) {
     if (!this->init_ok) {
         return;
     }

@@ -1,7 +1,7 @@
 #ifndef MCSEEDS_SLIMECHUNKPATTERNFINDER_HPP
 #define MCSEEDS_SLIMECHUNKPATTERNFINDER_HPP
 
-#include <vector>
+#include <unordered_set>
 #include <mutex>
 
 #include "Grid2D.hpp"
@@ -16,7 +16,7 @@ private:
 
 
 public:
-    Grid2D<bool> desired_pattern;
+    Grid2D<SlimeFlag> desired_pattern;
 
     SlimeChunkPatternFinder(ISeedGenerator *seed_generator, ISlimeChunkFinder *slime_chunk_finder, jint pattern_width,
                             jint pattern_height) :
@@ -26,9 +26,9 @@ public:
 
     }
 
-    void run_until_found(jint offset_x, jint offset_z, jint width, jint height, std::vector<ChunkLocation>* matches);
+    void run_until_found(jint offset_x, jint offset_z, jint width, jint height, std::unordered_set<ChunkLocation>* matches);
 
-    bool search_seed(jlong seed, jint offset_x, jint offset_z, jint width, jint height, std::mutex& vec_guard, std::vector<ChunkLocation>* matches);
+    bool search_seed(jlong seed, jint offset_x, jint offset_z, jint width, jint height, std::mutex& vec_guard, std::unordered_set<ChunkLocation>* matches);
 };
 
 
