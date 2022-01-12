@@ -17,33 +17,71 @@
 
 #endif
 
-int main() {
+int main(int argc, char** argv) {
 
 #ifdef SEARCH_PATTERN
+
+    if (argc != 2) {
+        std::cerr << "Syntax: " << argv[0] << " <pattern file>" << std::endl;
+        return 0;
+    }
+
+    std::vector<std::string> lines;
+
+    {
+        std::ifstream in;
+        in.open(argv[1]);
+
+
+        if (in.is_open()) {
+            std::string line;
+
+            while (std::getline(in, line)) {
+                if (!line.empty()) {
+                    lines.push_back(line);
+                }
+            }
+        } else {
+            std::cerr << "Failed to open File \"" << argv[1] << "\"" << std::endl;
+            return 0;
+        }
+
+        in.close();
+    }
+
+    int height = (int) lines.size();
+    int width = (int) lines[0].size();
+
+    for (const auto &item : lines) {
+        if (item.size() != width) {
+            std::cerr << "All lines in pattern input file must have the same length" << std::endl;
+        }
+    }
+
     SeedGeneratorSequential seqSeedGen;
     CPUSlimeChunkFinder slimeChunkFinder;
 
-    SlimeChunkPatternFinder patternFinder(&seqSeedGen, &slimeChunkFinder, 4, 4);
+    SlimeChunkPatternFinder patternFinder(&seqSeedGen, &slimeChunkFinder, width, height);
 
-    patternFinder.desired_pattern.set(0, 0, SlimeFlag::No);
-    patternFinder.desired_pattern.set(1, 0, SlimeFlag::Yes);
-    patternFinder.desired_pattern.set(2, 0, SlimeFlag::Yes);
-    patternFinder.desired_pattern.set(3, 0, SlimeFlag::Yes);
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            SlimeFlag flag;
 
-    patternFinder.desired_pattern.set(0, 1, SlimeFlag::Yes);
-    patternFinder.desired_pattern.set(1, 1, SlimeFlag::Yes);
-    patternFinder.desired_pattern.set(2, 1, SlimeFlag::No);
-    patternFinder.desired_pattern.set(3, 1, SlimeFlag::No);
+            switch (lines[y][x]) {
+                case '0':
+                    flag = SlimeFlag::No;
+                    break;
+                case '1':
+                    flag = SlimeFlag::Yes;
+                    break;
+                default:
+                    std::cerr << "Cannot parse '" << lines[y][x] << "'" << std::endl;
+                    return 0;
+            }
 
-    patternFinder.desired_pattern.set(0, 2, SlimeFlag::Yes);
-    patternFinder.desired_pattern.set(1, 2, SlimeFlag::Yes);
-    patternFinder.desired_pattern.set(2, 2, SlimeFlag::Yes);
-    patternFinder.desired_pattern.set(3, 2, SlimeFlag::Yes);
-
-    patternFinder.desired_pattern.set(0, 3, SlimeFlag::No);
-    patternFinder.desired_pattern.set(1, 3, SlimeFlag::Yes);
-    patternFinder.desired_pattern.set(2, 3, SlimeFlag::No);
-    patternFinder.desired_pattern.set(3, 3, SlimeFlag::Yes);
+            patternFinder.desired_pattern.set(x, y, flag);
+        }
+    }
 
     std::unordered_set<ChunkLocation> results;
 
