@@ -1,18 +1,19 @@
 #include <iostream>
 
-#include "include/SeedGeneratorSequential.hpp"
+#include "include/ISlimeChunkFinder.hpp"
 #include "include/CPUSlimeChunkFinder.hpp"
 #include "include/SlimeChunkPatternFinder.hpp"
 
 #include <fstream>
 #include <sstream>
 #include "include/perfmeasure.hpp"
+#include "include/GPUSlimeChunkFinder.hpp"
 
-#define SEARCH_PATTERN
+//#define SEARCH_PATTERN
 
 #ifndef SEARCH_PATTERN
 
-#define ALGO_COUNT 1
+#define ALGO_COUNT 2
 
 #endif
 
@@ -22,28 +23,35 @@ int main() {
     SeedGeneratorSequential seqSeedGen;
     CPUSlimeChunkFinder slimeChunkFinder;
 
-    SlimeChunkPatternFinder patternFinder(&seqSeedGen, &slimeChunkFinder, 3, 1);
+    algos[0] = new CPUSlimeChunkFinder();
+    algos[1] = new GPUSlimeChunkFinder();
 
-    patternFinder.desired_pattern.set(0, 0, true);
-    patternFinder.desired_pattern.set(1, 0, true);
-    patternFinder.desired_pattern.set(2, 0, true);
+    const jlong seed = 123L;
 
-    std::vector<ChunkLocation> results;
+    jint start_x = 0;
+    jint start_z = 0;
 
-    patternFinder.run_until_found(-500, -500, 1000, 1000, &results);
+    jint width = 40000, height = 40000;
 
-    const int limit = 10;
-    int count = 0;
+//    jint start_x = 363;
+//    jint start_z = 0;
+//
+//    jint width = 1, height = 1000000;
 
-    for (const ChunkLocation &foundLocation : results) {
-        if (++count == limit) {
-            break;
+    for (int i = 0; i < ALGO_COUNT; i++) {
+        results[i] = new Grid2D<bool>(width, height);
+    }
+
+    for (int algo_num = 0; algo_num < ALGO_COUNT; algo_num++) {
+        if (algos[algo_num] == nullptr) {
+            continue;
         }
 
-        std::cout   << "Seed: " << foundLocation.world_seed << std::endl
-                    << "Chunk X: " << foundLocation.chunk_x << std::endl
-                    << "Chunk Z: " << foundLocation.chunk_z << std::endl
-                    << "================================================" << std::endl;
+        MEASURE_BEGIN;
+        algos[algo_num]->look_for_slime_chunks(seed, start_x, start_z, results[algo_num]);
+        MEASURE_END;
+
+        MEASURE_PRINT("Slime Chunk Finder");
     }
 
 #else
@@ -52,6 +60,7 @@ int main() {
     Grid2D<bool> *results[ALGO_COUNT] = {nullptr};
 
     algos[0] = new CPUSlimeChunkFinder();
+    algos[1] = new GPUSlimeChunkFinder();
 
     const jlong seed = 123L;
 
