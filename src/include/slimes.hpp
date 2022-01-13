@@ -1,11 +1,8 @@
 #ifndef MCSEEDS_SLIMES_HPP
 #define MCSEEDS_SLIMES_HPP
 
-#include <cstdint>
+#include "Grid2D.hpp"
 
-enum SlimeFlag : uint8_t {
-    No,
-    Yes
-};
+typedef Grid2D<bool> SlimeGrid;
 
 #endif //MCSEEDS_SLIMES_HPP

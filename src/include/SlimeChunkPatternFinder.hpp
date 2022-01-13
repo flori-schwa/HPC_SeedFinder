@@ -16,7 +16,7 @@ private:
 
 
 public:
-    Grid2D<SlimeFlag> desired_pattern;
+    SlimeGrid desired_pattern;
 
     SlimeChunkPatternFinder(ISeedGenerator *seed_generator, ISlimeChunkFinder *slime_chunk_finder, jint pattern_width,
                             jint pattern_height) :

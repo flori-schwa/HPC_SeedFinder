@@ -8,7 +8,7 @@ bool SlimeChunkPatternFinder::search_seed(jlong seed, jint offset_x, jint offset
                                           std::mutex &vec_guard,
                                           std::unordered_set<ChunkLocation> *matches) {
     MEASURE_BEGIN;
-    Grid2D<SlimeFlag> chunks(width, height);
+    SlimeGrid chunks(width, height);
     MEASURE_END;
 //    MEASURE_PRINT("Allocate Chunks");
 
@@ -22,7 +22,7 @@ bool SlimeChunkPatternFinder::search_seed(jlong seed, jint offset_x, jint offset
     const int bounding_box_width = desired_pattern.width + 2;
     const int bounding_box_height = desired_pattern.height + 2;
 
-    BoyerMoore<SlimeFlag, 2> matcher(desired_pattern.row_pointer(0), desired_pattern.width);
+    BoyerMoore<bool, 2> matcher(desired_pattern.row_pointer(0), desired_pattern.width);
 
     MEASURE_BEGIN_R;
 
@@ -41,8 +41,8 @@ bool SlimeChunkPatternFinder::search_seed(jlong seed, jint offset_x, jint offset
             bool match = true;
 
             for (int bb = 0; bb < bounding_box_width; ++bb) {
-                if (chunks.get((x - 1) + bb, z - 1) == SlimeFlag::Yes ||
-                    chunks.get((x - 1) + bb, z + desired_pattern.height) == SlimeFlag::Yes) {
+                if (chunks.get((x - 1) + bb, z - 1) ||
+                    chunks.get((x - 1) + bb, z + desired_pattern.height)) {
                     match = false;
                     break;
                 }
@@ -52,8 +52,8 @@ bool SlimeChunkPatternFinder::search_seed(jlong seed, jint offset_x, jint offset
                 for (int pattern_row = 0; pattern_row < desired_pattern.height; ++pattern_row) {
                     if (
                             !chunks.row_matches(z + pattern_row, x, &desired_pattern, pattern_row)
-                            || (chunks.get(x - 1, z + pattern_row) == SlimeFlag::Yes ||
-                                chunks.get(x + desired_pattern.width, z + pattern_row) == SlimeFlag::Yes)) {
+                            || (chunks.get(x - 1, z + pattern_row) ||
+                                chunks.get(x + desired_pattern.width, z + pattern_row))) {
                         match = false;
                         break;
                     }
