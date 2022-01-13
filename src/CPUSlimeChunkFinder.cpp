@@ -15,18 +15,8 @@ static jlong slime_seed(jlong world_seed, jint x, jint z) {
 
 
 jint next31(jlong *seed) {
-    jlong old, next;
-
-    do {
-        old = *seed;
-        next = (old * jrand_multiplier + jrand_addend) & jrand_mask;
-
-        if (*seed == old) {
-            *seed = next;
-            break;
-        }
-    } while (true);
-
+    jlong next = (*seed * jrand_multiplier + jrand_addend) & jrand_mask;
+    *seed = next;
     return (jint) ((unsigned) (next >> (48 - 31)));
 }
 
