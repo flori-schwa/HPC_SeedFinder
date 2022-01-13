@@ -40,6 +40,7 @@ __kernel void look_for_slime_chunks(long seed, int offset_x, int offset_z, long 
         }
     } while(true);
 
+    //printf("(%u, %u): %u\n", x, z, r == 0);
     buffer[z * width + x] = r == 0 ? 1 : 0;
 }
 
