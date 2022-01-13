@@ -21,11 +21,11 @@ public class Debug {
         // move generated .bin file to root directory of C++ project
         long worldSeed = 123;
 
-        long width = 1;
-        long height = 1;
+        long width = 100;
+        long height = 100;
 
-        int start_x = 23716;
-        int start_z = 32867;
+        int start_x = 0;
+        int start_z = 0;
 
         byte[] values = new byte[(int) (width * height)];
 

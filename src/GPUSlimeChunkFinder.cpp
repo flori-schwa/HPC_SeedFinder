@@ -1,124 +1,126 @@
 #include "include/GPUSlimeChunkFinder.hpp"
-
-
-long get_numeric_dev_info(cl_device_id* device, cl_device_info param) {
-    long value = -1;
-    long* valueP = &value;
-    cl_int ret = clGetDeviceInfo(*device, param, sizeof(long), valueP, nullptr);
-    if (ret != CL_SUCCESS) {
-        printf("Error %i", ret);
-    }
-    return value;
-}
-
-
-char* get_string_dev_info(cl_device_id* device, cl_device_info param, size_t str_length = 150) {
-    char* value = static_cast<char*>(malloc(sizeof(char) * str_length));
-    cl_int ret = clGetDeviceInfo(*device, param, sizeof(char) * str_length, value, nullptr);
-    if (ret != CL_SUCCESS) {
-        printf("Error %i", ret);
-    }
-    return value;
-}
+#include <iostream>
+#include <fstream>
+#include <sstream>
 
 
 GPUSlimeChunkFinder::GPUSlimeChunkFinder() {
-    // ToDo: error when count > allocated
-    cl_int ret;
-    cl_uint* count = static_cast<cl_uint*>(malloc(sizeof(cl_uint)));
-    *count = 999;
+    // region Device setup
+    using namespace std;
+    using namespace cl;
 
-    // region Platform
-
-    cl_platform_id* platforms = static_cast<cl_platform_id*>(malloc(sizeof(cl_platform_id) * EXPECTED_PLATFORMS));
-    ret = clGetPlatformIDs(EXPECTED_PLATFORMS, platforms, count);
-    if (*count != 1) {
-        printf("GetPlatform: Ret=%i, num Pf: %i\n", ret, *count);
-    }
-
-    if (ret != CL_SUCCESS) {
+    vector<Platform> platforms;
+    if (Platform::get(&platforms) != CL_SUCCESS) {
+        cout << "Error while getting platforms!" << endl;
         return;
     }
 
-    // endregion+
-
-    *count = 999;
-
-    // region Devices
-
-    cl_device_id* devices = static_cast<cl_device_id*>(malloc(sizeof(cl_device_id) * EXPECTED_DEVICES));
-    ret = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, EXPECTED_DEVICES, devices, count);
-
-    if (*count != 1) {
-        printf("GetPlatform: Ret=%i, num Pf: %i\n", ret, *count);
-    }
-
-    if (ret != CL_SUCCESS) {
+    if (platforms.empty()) {
+        cout << "No Platform found!" << endl;
         return;
     }
 
-    // endregion
-
-    printf("Found %i devices\n", *count);
-
-    for (int i = 0; i < *count; i++) {
-        printf("Device %i\n", i);
-        long compute_units = get_numeric_dev_info(devices + i, CL_DEVICE_MAX_COMPUTE_UNITS);
-        long frequency = get_numeric_dev_info(devices + i, CL_DEVICE_MAX_CLOCK_FREQUENCY);
-        long address_size = get_numeric_dev_info(devices + i, CL_DEVICE_ADDRESS_BITS);
-        char* name = get_string_dev_info(devices + i, CL_DEVICE_NAME);
-        char* vendor = get_string_dev_info(devices + i, CL_DEVICE_VENDOR);
-        char* version = get_string_dev_info(devices + i, CL_DEVICE_VERSION);
-        char* profile = get_string_dev_info(devices + i, CL_DEVICE_PROFILE, 1000);
-        char* drv_version = get_string_dev_info(devices + i, CL_DRIVER_VERSION);
-        char* extensions = get_string_dev_info(devices + i, CL_DEVICE_EXTENSIONS, 1000);
-        printf("\tVendor '%s' Name: '%s'\n", name, vendor);
-        printf("\tDevice Version: '%s' Driver Version '%s'\n", version, drv_version);
-        printf("\tCUs: %i, Freq: %i Mhz, Adrr Size: %i\n", compute_units, frequency, address_size);
-        printf("\tProfile: '%s'\n", profile);
-        printf("\tExtensions: '%s'\n", extensions);
-        free(name);
-        free(vendor);
-        free(version);
-        free(profile);
-        free(drv_version);
-        free(extensions);
+    if (platforms.size() > 1) {
+        cout << "Too many platforms found, using Platform 1!" << endl;
     }
 
-    // ToDo: Select device with highest CU count
-    this->UseDevice(devices[0]);
+    Platform plat = platforms[0];
 
-    // region Free
+    vector<Device> devices;
+    if (plat.getDevices(CL_DEVICE_TYPE_GPU, &devices) != CL_SUCCESS) {
+        cout << "Error while getting devices!" << endl;
+        return;
+    }
 
-    free(count);
-    free(platforms);
-    free(devices);
+    if (devices.empty()) {
+        cout << "No Devices found!" << endl;
+        return;
+    }
 
+    if (devices.size() > 1) {
+        cout << "Too many Devices found, using Devices 1!" << endl;
+    }
+
+    this->device = new Device(devices[0]);
+
+    vector<unsigned long long> max_wi_sizes = this->device->getInfo<CL_DEVICE_MAX_WORK_ITEM_SIZES>();
+
+    cout << "Device Max work item dimensions: " << max_wi_sizes[0] << "x" << max_wi_sizes[1] << "x" << max_wi_sizes[2] << endl;
+
+    unsigned long long max_wg_sizes = this->device->getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>();
+
+    cout << "Device Max work items per work group: " << max_wg_sizes << endl;
+
+    unsigned long long max_memory = this->device->getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>();
+
+    cout << "Max memory on device: " << max_memory << endl;
+
+    this->context = Context(*this->device);
+
+    this->queue = CommandQueue(this->context, *this->device);
+
+    std::ifstream in;
+    in.open("src/GPUSlimeChunkFinder.cl");
+    std::stringstream ss;
+
+    if (in.is_open()) {
+        std::string line;
+
+        while (std::getline(in, line)) {
+            ss << line << std::endl;
+        }
+    } else {
+        cerr << "Failed to open cl File";
+        return;
+    }
+
+    this->program = Program(this->context, ss.str(), false);
+
+    try {
+        this->program.build();
+    } catch (cl::Error &e) {
+        cout << "Build status: " << this->program.getBuildInfo<CL_PROGRAM_BUILD_STATUS>(*this->device) << endl;
+        cout << "Log:\n" << this->program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(*this->device) << endl;
+    }
+
+    this->kernel = Kernel(this->program, "look_for_slime_chunks");
+
+    cout << "Kernel Max Work Group size" << this->kernel.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(*this->device) << endl;
+
+    cout <<"InitOK: " << (this->init_ok = true) << endl;
     // endregion
-    printf("InitOK: %d", this->init_ok);
 }
 
-void GPUSlimeChunkFinder::UseDevice(cl_device_id dev) {
-    this->device = dev;
-
-    cl_int err = -1;
-    this->context = clCreateContext(nullptr, 1, &this->device, nullptr, nullptr, &err);
-    if (err != CL_SUCCESS) {
-        printf("Failure while creating Context: %i", err);
-        return;
-    }
-
-    err = -1;
-    this->queue = clCreateCommandQueue(this->context, this->device, 0, &err);
-    if (err != CL_SUCCESS) {
-        printf("Failure while creating Queue: %i", err);
-        return;
-    }
-    this->init_ok = true;
+GPUSlimeChunkFinder::~GPUSlimeChunkFinder() {
+    delete this->device;
 }
 
 void GPUSlimeChunkFinder::look_for_slime_chunks(const jlong seed, const jint start_cx, const jint start_cz, Grid2D<SlimeFlag>* result) {
+    using namespace std;
+    using namespace cl;
     if (!this->init_ok) {
         return;
     }
+
+    cl_mem_flags flags = CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY;
+
+    Buffer b = Buffer(this->context, flags, result->size);
+
+    this->kernel.setArg<jlong>(0, seed);
+    this->kernel.setArg<jint>(1, start_cx);
+    this->kernel.setArg<jint>(2, start_cz);
+    this->kernel.setArg<jlong>(3, result->width);
+    this->kernel.setArg<Buffer>(4, b);
+
+    Event runEvent;
+
+    this->queue.enqueueNDRangeKernel(this->kernel, NullRange, NDRange(result->width, result->height), cl::NullRange, nullptr, &runEvent);
+
+    const vector<Event> event_wait = { runEvent };
+
+    this->queue.enqueueReadBuffer(b, true, 0, result->size, result->data, &event_wait);
+
+    this->queue.finish(); // waits until all commands in queue are done
+
+
 }

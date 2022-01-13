@@ -120,7 +120,7 @@ int main(int argc, char** argv) {
     jint start_x = 0;
     jint start_z = 0;
 
-    jint width = 40000, height = 40000;
+    jint width = 100, height = 100;
 
     for (int i = 0; i < ALGO_COUNT; i++) {
         results[i] = new Grid2D<SlimeFlag>(width, height);
