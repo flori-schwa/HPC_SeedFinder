@@ -3,6 +3,9 @@
 #include <fstream>
 #include <sstream>
 
+/*
+ * Not yet fully functional, still produces erroneous Slime Chunk Data
+ */
 
 GPUSlimeChunkFinder::GPUSlimeChunkFinder() {
     // region Device setup
