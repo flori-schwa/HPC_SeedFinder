@@ -24,7 +24,7 @@ public:
 
     ~GPUSlimeChunkFinder();
 
-    void look_for_slime_chunks(jlong seed, jint start_cx, jint start_cz, Grid2D<SlimeFlag>* result) override;
+    void look_for_slime_chunks(jlong seed, jint start_cx, jint start_cz, SlimeGrid* result) override;
 };
 
 

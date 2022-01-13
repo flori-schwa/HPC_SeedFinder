@@ -110,7 +110,7 @@ int main(int argc, char** argv) {
 #else
 
     ISlimeChunkFinder *algos[ALGO_COUNT] = {nullptr};
-    Grid2D<SlimeFlag> *results[ALGO_COUNT] = {nullptr};
+    SlimeGrid *results[ALGO_COUNT] = {nullptr};
 
     algos[0] = new CPUSlimeChunkFinder();
     algos[1] = new GPUSlimeChunkFinder();
@@ -123,7 +123,7 @@ int main(int argc, char** argv) {
     jint width = 100, height = 100;
 
     for (int i = 0; i < ALGO_COUNT; i++) {
-        results[i] = new Grid2D<SlimeFlag>(width, height);
+        results[i] = new SlimeGrid (width, height);
     }
 
     for (int algo_num = 0; algo_num < ALGO_COUNT; algo_num++) {
@@ -161,7 +161,7 @@ int main(int argc, char** argv) {
     input.close();
 
     for (int algo_num = 0; algo_num < ALGO_COUNT; algo_num++) {
-        bool err_notified = SlimeFlag::No;
+        bool err_notified = false;
         long total_errors = 0;
 
         for (int y = 0; y < height; ++y) {

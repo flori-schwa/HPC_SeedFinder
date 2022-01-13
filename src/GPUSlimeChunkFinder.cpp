@@ -95,7 +95,7 @@ GPUSlimeChunkFinder::~GPUSlimeChunkFinder() {
     delete this->device;
 }
 
-void GPUSlimeChunkFinder::look_for_slime_chunks(const jlong seed, const jint start_cx, const jint start_cz, Grid2D<SlimeFlag>* result) {
+void GPUSlimeChunkFinder::look_for_slime_chunks(const jlong seed, const jint start_cx, const jint start_cz, SlimeGrid* result) {
     using namespace std;
     using namespace cl;
     if (!this->init_ok) {
