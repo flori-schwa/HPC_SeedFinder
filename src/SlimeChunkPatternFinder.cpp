@@ -2,7 +2,22 @@
 #include "include/SlimeChunkPatternFinder.hpp"
 #include "include/BoyerMoore.hpp"
 
+#define DO_MEASURE
+
+#ifdef DO_MEASURE
 #include "include/perfmeasure.hpp"
+#else
+
+#define MEASURE_BEGIN
+#define MEASURE_END do
+#define MEASURE_BEGIN_R
+#define MEASURE_END_R
+#define MEASURE_PRINT(Prefix)
+
+#endif
+
+//#define NAIVE
+#define BOYER_MOORE
 
 bool SlimeChunkPatternFinder::search_seed(jlong seed, jint offset_x, jint offset_z, jint width, jint height,
                                           std::mutex &vec_guard,
@@ -10,13 +25,47 @@ bool SlimeChunkPatternFinder::search_seed(jlong seed, jint offset_x, jint offset
     MEASURE_BEGIN;
     SlimeGrid chunks(width, height);
     MEASURE_END;
-//    MEASURE_PRINT("Allocate Chunks");
+    MEASURE_PRINT("Allocate Chunks");
 
     MEASURE_BEGIN_R;
     this->slime_chunk_finder->look_for_slime_chunks(seed, offset_x, offset_z, &chunks);
     MEASURE_END_R;
-//    MEASURE_PRINT("Get Slime Chunks");
+    MEASURE_PRINT("Get Slime Chunks");
 
+#ifdef NAIVE
+
+    MEASURE_BEGIN_R;
+
+#pragma omp parallel for shared(chunks, vec_guard, matches) firstprivate(seed, offset_x, offset_z, width, height) default(none) collapse(2)
+    for (int z = 0; z < height; ++z) {
+        for (int x = 0; x < width; ++x) {
+            if ((x + this->desired_pattern.width) > chunks.width ||
+                (z + this->desired_pattern.height) > chunks.height) {
+                continue;
+            }
+
+            for (int rz = 0; rz < this->desired_pattern.height; ++rz) {
+                for (int rx = 0; rx < this->desired_pattern.width; ++rx) {
+                    if (chunks.get(x + rx, z + rz) != this->desired_pattern.get(rx, rz)) {
+                        goto no_match;
+                    }
+                }
+            }
+
+            vec_guard.lock();
+            matches->emplace(seed, offset_x + x, offset_z + z);
+            vec_guard.unlock();
+
+            no_match:
+            continue;
+        }
+    }
+
+    MEASURE_END_R;
+    MEASURE_PRINT("Search Pattern Naive");
+
+#endif
+#ifdef BOYER_MOORE
     const int search_rows = height - desired_pattern.height - 1;
 
     const int bounding_box_width = desired_pattern.width + 2;
@@ -69,7 +118,8 @@ bool SlimeChunkPatternFinder::search_seed(jlong seed, jint offset_x, jint offset
     }
 
     MEASURE_END_R;
-//    MEASURE_PRINT("Search Pattern");
+    MEASURE_PRINT("Search Pattern using Boyer-Moore");
+#endif
 
     return !matches->empty();
 }
