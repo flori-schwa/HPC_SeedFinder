@@ -20,7 +20,7 @@ private:
     }
 
     void
-    create_graph_loop(Graph2D<T> *graph, GraphNode<T> *current, std::unordered_set<GraphNode<T> *> *visited) const {
+    create_graph_loop(Graph2D<T>* graph, GraphNode<T>* current, std::unordered_set<GraphNode<T>*>* visited) const {
         visited->insert(current);
 
         if (current->up == nullptr &&
@@ -45,14 +45,16 @@ private:
     }
 
 public:
-    T *data;
+    T* data;
 
     const int width;
     const int height;
 
     const int length;
 
-    Grid2D(int width, int height) : width(width), height(height), length(width * height) {
+    const size_t size;
+
+    Grid2D(int width, int height) : width(width), height(height), length(width * height), size(sizeof(T) * width * height) {
         this->data = new T[this->length];
     };
 
@@ -100,14 +102,14 @@ public:
         }
     }
 
-    void create_graph(Graph2D<T> *graph) const {
+    void create_graph(Graph2D<T>* graph) const {
         if (graph->node_count() != 1 ||
             graph->get_root()->value != get(graph->get_root()->pos.x, graph->get_root()->pos.y)) {
             std::cerr << "Graph already contains more than one or value does not match" << std::endl;
             exit(-1);
         }
 
-        std::unordered_set<GraphNode<T> *> *visited = new std::unordered_set<GraphNode<T> *>();
+        std::unordered_set<GraphNode<T>*>* visited = new std::unordered_set<GraphNode<T>*>();
         create_graph_loop(graph, graph->get_root(), visited);
         delete visited;
     }
@@ -125,8 +127,8 @@ public:
 
 #endif
 
-    void create_kmp_string(int start_x, int start_z, int width, int height, char *buffer,
-                           const std::function<char(T)> &to_char_func) const {
+    void create_kmp_string(int start_x, int start_z, int width, int height, char* buffer,
+                           const std::function<char(T)>& to_char_func) const {
         if (width <= 0) {
             std::cerr << "width <= 0" << std::endl;
             exit(-1);
@@ -143,8 +145,8 @@ public:
         for (int z = 0; z < height; ++z) {
             for (int x = 0; x < width; ++x) {
 #else
-        for (int x = 0; x < width; ++x) {
-            for (int z = 0; z < height; ++z) {
+                for (int x = 0; x < width; ++x) {
+                    for (int z = 0; z < height; ++z) {
 #endif
                 buffer[i++] = to_char_func(get(start_x + x, start_z + z));
             }

@@ -71,7 +71,7 @@ bool SlimeChunkPatternFinder::search_seed(jlong seed, jint offset_x, jint offset
     const int bounding_box_width = desired_pattern.width + 2;
     const int bounding_box_height = desired_pattern.height + 2;
 
-    BoyerMoore<bool, 2> matcher(desired_pattern.row_pointer(0), desired_pattern.width);
+    BoyerMoore<SlimeFlagType, 2> matcher(desired_pattern.row_pointer(0), desired_pattern.width);
 
     MEASURE_BEGIN_R;
 

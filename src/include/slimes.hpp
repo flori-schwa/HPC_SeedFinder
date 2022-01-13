@@ -3,6 +3,7 @@
 
 #include "Grid2D.hpp"
 
-typedef Grid2D<bool> SlimeGrid;
+typedef uint8_t SlimeFlagType;
+typedef Grid2D<SlimeFlagType> SlimeGrid;
 
 #endif //MCSEEDS_SLIMES_HPP
