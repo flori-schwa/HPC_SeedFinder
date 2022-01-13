@@ -66,14 +66,14 @@ int main(int argc, char** argv) {
 
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
-            SlimeFlag flag;
+            bool flag;
 
             switch (lines[y][x]) {
                 case '0':
-                    flag = SlimeFlag::No;
+                    flag = false;
                     break;
                 case '1':
-                    flag = SlimeFlag::Yes;
+                    flag = true;
                     break;
                 default:
                     std::cerr << "Cannot parse '" << lines[y][x] << "'" << std::endl;

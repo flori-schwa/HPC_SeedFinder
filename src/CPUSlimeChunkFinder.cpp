@@ -15,23 +15,13 @@ static jlong slime_seed(jlong world_seed, jint x, jint z) {
 
 
 jint next31(jlong *seed) {
-    jlong old, next;
-
-    do {
-        old = *seed;
-        next = (old * jrand_multiplier + jrand_addend) & jrand_mask;
-
-        if (*seed == old) {
-            *seed = next;
-            break;
-        }
-    } while (true);
-
+    jlong next = (*seed * jrand_multiplier + jrand_addend) & jrand_mask;
+    *seed = next;
     return (jint) ((unsigned) (next >> (48 - 31)));
 }
 
 void CPUSlimeChunkFinder::look_for_slime_chunks(const jlong seed, const jint start_cx, const jint start_cz,
-                                                Grid2D<SlimeFlag> *result) {
+                                                SlimeGrid *result) {
     const int length = result->width * result->height;
 
 #pragma omp parallel for firstprivate(seed, start_cx, start_cz, length) shared(result) default(none) collapse(2)
@@ -64,7 +54,7 @@ void CPUSlimeChunkFinder::look_for_slime_chunks(const jlong seed, const jint sta
                 }
             } while (true);
 
-            result->set(x, z, r == 0 ? SlimeFlag::Yes : SlimeFlag::No);
+            result->set(x, z, r == 0);
         }
     }
 }
