@@ -6,8 +6,6 @@
 
 #include "Graph2D.hpp"
 
-//#define GRID2D_COL_MAJOR
-
 template<typename T>
 class Grid2D {
 private:
@@ -50,11 +48,11 @@ public:
     const int width;
     const int height;
 
-    const int length;
+    const size_t length;
 
     const size_t size;
 
-    Grid2D(int width, int height) : width(width), height(height), length(width * height), size(sizeof(T) * width * height) {
+    Grid2D(int width, int height) : width(width), height(height), length((size_t) width * (size_t)  height), size(sizeof(T) * width * height) {
         this->data = new T[this->length];
     };
 

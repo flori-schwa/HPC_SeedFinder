@@ -1,27 +1,17 @@
 #include <iostream>
 #include "include/SlimeChunkPatternFinder.hpp"
+#include "include/CPUSlimeChunkFinder.hpp"
 #include "include/BoyerMoore.hpp"
 
-#define DO_MEASURE
-
-#ifdef DO_MEASURE
-#include "include/perfmeasure.hpp"
-#else
-
-#define MEASURE_BEGIN
-#define MEASURE_END do
-#define MEASURE_BEGIN_R
-#define MEASURE_END_R
-#define MEASURE_PRINT(Prefix)
-
-#endif
-
 //#define NAIVE
-#define BOYER_MOORE
+//#define BOYER_MOORE
+#define LINE_BY_LINE
 
-bool SlimeChunkPatternFinder::search_seed(jlong seed, jint offset_x, jint offset_z, jint width, jint height,
+bool SlimeChunkPatternFinder::search_seed(jlong seed, int offset_x, int offset_z, int width, int height,
                                           std::mutex &vec_guard,
                                           std::unordered_set<ChunkLocation> *matches) {
+
+#ifndef LINE_BY_LINE
     MEASURE_BEGIN;
     SlimeGrid chunks(width, height);
     MEASURE_END;
@@ -31,6 +21,7 @@ bool SlimeChunkPatternFinder::search_seed(jlong seed, jint offset_x, jint offset
     this->slime_chunk_finder->look_for_slime_chunks(seed, offset_x, offset_z, &chunks);
     MEASURE_END_R;
     MEASURE_PRINT("Get Slime Chunks");
+#endif
 
 #ifdef NAIVE
 
@@ -120,29 +111,92 @@ bool SlimeChunkPatternFinder::search_seed(jlong seed, jint offset_x, jint offset
     MEASURE_END_R;
     MEASURE_PRINT("Search Pattern using Boyer-Moore");
 #endif
+#ifdef LINE_BY_LINE
+
+    SlimeGrid patternWithPadding(this->desired_pattern.width + 2, this->desired_pattern.height + 2);
+
+    for (int x = 0; x < patternWithPadding.width; ++x) {
+        patternWithPadding.set(x, 0, 0);
+        patternWithPadding.set(x, patternWithPadding.height - 1, 0);
+    }
+
+    for (int z = 1; z < patternWithPadding.height - 1; ++z) {
+        for (int x = 0; x < patternWithPadding.width; ++x) {
+            if (x == 0 || x == patternWithPadding.width - 1) {
+                patternWithPadding.set(x, z, 0);
+            } else {
+                patternWithPadding.set(x, z, this->desired_pattern.get(x - 1, z - 1));
+            }
+        }
+    }
+
+    struct HeaderMatch {
+        int origin_x;
+        int origin_z;
+
+        HeaderMatch(int originX, int originZ) : origin_x(originX), origin_z(originZ) {}
+    };
+
+    std::vector<HeaderMatch> matching_patterns;
+    std::mutex matches_guard;
+
+    BoyerMoore<SlimeFlagType, 2> matcher(desired_pattern.row_pointer(0), desired_pattern.width);
+
+    CPUSlimeChunkFinder cpuFinder;
+
+#pragma omp parallel for firstprivate(width, height, seed, offset_x, offset_z) shared(matcher, matches_guard, matching_patterns, cpuFinder, patternWithPadding, matches) default(none)
+    for (int z = 0; z < height; ++z) {
+        SlimeGrid check(this->desired_pattern.width + 2, this->desired_pattern.height + 2);
+
+        std::vector<size_t> first_line_matches;
+
+        matcher.find_all_matches([&cpuFinder, seed, offset_x, offset_z, z] (size_t x) {
+            return cpuFinder.is_slime_chunk(seed, offset_x + x, offset_z + z) ? 1 : 0;
+        }, width, first_line_matches);
+
+//#pragma omp parallel for shared(first_line_matches, cpuFinder, check, patternWithPadding, matches_guard, matches) firstprivate(seed, offset_x, offset_z, z) default(none)
+        for (size_t match_offset : first_line_matches) {
+            int x = (int) match_offset;
+
+            cpuFinder.look_for_slime_chunks_single_thread(seed, offset_x + x - 1,
+                                                          offset_z + z - 1, &check);
+
+            for (int row = 0; row < patternWithPadding.height; ++row) {
+                if (!check.row_matches(row, 0, &patternWithPadding, row)) {
+                    goto no_match;
+                }
+            }
+
+            matches_guard.lock();
+            matches->emplace(seed, offset_x + x, offset_z + z);
+            matches_guard.unlock();
+
+            no_match:
+            continue;
+        }
+    }
+#endif
 
     return !matches->empty();
+
 }
 
-void SlimeChunkPatternFinder::run_until_found(jint offset_x, jint offset_z, jint width, jint height,
+void SlimeChunkPatternFinder::run_until_found(int offset_x, int offset_z, int width, int height,
                                               std::unordered_set<ChunkLocation> *matches) {
     std::mutex vec_guard;
     volatile bool any_found = false;
+
+    std::cout << "Search Grid dimensions: " << width << " * " << height << std::endl;
 
     while (!any_found) {
         jlong seed = this->seed_generator->next_seed();
 
         std::cout << "Checking seed " << seed << "..." << std::endl;
 
-        MEASURE_BEGIN;
         bool result = this->search_seed(seed, offset_x, offset_z, width, height, vec_guard, matches);
-        MEASURE_END;
-
-//        MEASURE_PRINT("Check Single Seed");
 
         if (result) {
             any_found = true;
-            break;
         }
     }
 }

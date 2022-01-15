@@ -64,6 +64,8 @@ private:
     }
 
 public:
+    typedef std::function<T(size_t)> TextGeneratorFunc;
+
     BoyerMoore(T *pattern, size_t patternLen) : pattern(pattern), pattern_len(patternLen) {
         make_char_table();
         make_offset_table();
@@ -87,10 +89,44 @@ public:
         return -1;
     }
 
+    int64_t first_index_of(TextGeneratorFunc generator, size_t offset, size_t text_len) const {
+        for (int64_t i = pattern_len - 1, j; i < text_len;) {
+            for (j = pattern_len - 1; pattern[j] == generator(i + offset); --i, --j) {
+                if (j == 0) {
+                    return i;
+                }
+            }
+
+            i += std::max(this->offset_table[pattern_len - 1 - j], this->char_table[generator(i + offset)]);
+        }
+
+        return -1;
+    }
+
     void find_all_matches(T* text, size_t text_len, std::vector<size_t>& matches) const {
-        int64_t offset = 0, total_offset = 0;
+        int64_t offset = 0;
+        size_t total_offset = 0;
 
         while ((offset = first_index_of(text + total_offset, text_len - total_offset)) != -1) {
+            total_offset += offset;
+            matches.push_back(total_offset);
+            ++total_offset;
+
+            if (total_offset >= text_len) {
+                break;
+            }
+
+            if (text_len - total_offset < pattern_len) {
+                break;
+            }
+        }
+    }
+
+    void find_all_matches(TextGeneratorFunc generator, size_t text_len, std::vector<size_t>& matches) const {
+        int64_t offset = 0;
+        size_t total_offset = 0;
+
+        while ((offset = first_index_of(generator, total_offset, text_len - total_offset)) != -1) {
             total_offset += offset;
             matches.push_back(total_offset);
             ++total_offset;

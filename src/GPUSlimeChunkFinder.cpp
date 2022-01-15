@@ -1,7 +1,12 @@
+#ifdef USE_OPENCL
+
 #include "include/GPUSlimeChunkFinder.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <cmath>
+
+#include "include/perfmeasure.hpp"
 
 /*
  * Not yet fully functional, still produces erroneous Slime Chunk Data
@@ -54,7 +59,7 @@ GPUSlimeChunkFinder::GPUSlimeChunkFinder() {
 
     cout << "Device Max work items per work group: " << max_wg_sizes << endl;
 
-    unsigned long long max_memory = this->device->getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>();
+    this->max_memory = this->device->getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>();
 
     cout << "Max memory on device: " << max_memory << endl;
 
@@ -98,6 +103,36 @@ GPUSlimeChunkFinder::~GPUSlimeChunkFinder() {
     delete this->device;
 }
 
+void GPUSlimeChunkFinder::get_slime_chunks_1d(const jlong seed, const jint offset_x, const jint offset_z,
+                                              SlimeGrid *result) {
+
+    cl_mem_flags flags = CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY;
+
+    cl::Buffer b = cl::Buffer(this->context, flags, result->size);
+
+    kernel_guard.lock();
+
+    this->kernel.setArg<jlong>(0, seed);
+    this->kernel.setArg<jint>(1, offset_x);
+    this->kernel.setArg<jint>(2, offset_z);
+    this->kernel.setArg<jlong>(3, result->width);
+    this->kernel.setArg<int>(4, 1);
+    this->kernel.setArg<cl::Buffer>(5, b);
+
+    cl::Event runEvent;
+    this->queue.enqueueNDRangeKernel(this->kernel, cl::NullRange, cl::NDRange(result->width), cl::NullRange, nullptr, &runEvent);
+
+    kernel_guard.unlock();
+
+    try {
+        const std::vector<cl::Event> event_wait = { runEvent };
+        this->queue.enqueueReadBuffer(b, true, 0, result->size, result->data, &event_wait);
+    } catch (cl::Error& e) {
+        std::cout << e.err() << ": " << e.what() << std::endl;
+        exit(-1);
+    }
+}
+
 void GPUSlimeChunkFinder::look_for_slime_chunks(const jlong seed, const jint start_cx, const jint start_cz, SlimeGrid* result) {
     using namespace std;
     using namespace cl;
@@ -105,7 +140,14 @@ void GPUSlimeChunkFinder::look_for_slime_chunks(const jlong seed, const jint sta
         return;
     }
 
+    if (result->height == 1) {
+        this->get_slime_chunks_1d(seed, start_cx, start_cz, result);
+        return;
+    }
+
     cl_mem_flags flags = CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY;
+
+    kernel_guard.lock();
 
     Buffer b = Buffer(this->context, flags, result->size);
 
@@ -113,17 +155,23 @@ void GPUSlimeChunkFinder::look_for_slime_chunks(const jlong seed, const jint sta
     this->kernel.setArg<jint>(1, start_cx);
     this->kernel.setArg<jint>(2, start_cz);
     this->kernel.setArg<jlong>(3, result->width);
-    this->kernel.setArg<Buffer>(4, b);
+    this->kernel.setArg<int>(4, 2);
+    this->kernel.setArg<Buffer>(5, b);
 
     Event runEvent;
 
     this->queue.enqueueNDRangeKernel(this->kernel, NullRange, NDRange(result->width, result->height), cl::NullRange, nullptr, &runEvent);
 
-    const vector<Event> event_wait = { runEvent };
-
-    this->queue.enqueueReadBuffer(b, true, 0, result->size, result->data, &event_wait);
+    try {
+        const vector<Event> event_wait = { runEvent };
+        this->queue.enqueueReadBuffer(b, true, 0, result->size, result->data, &event_wait);
+    } catch (cl::Error& e) {
+        std::cout << e.err() << ": " << e.what() << std::endl;
+        exit(-1);
+    }
 
     this->queue.finish(); // waits until all commands in queue are done
-
-
+    kernel_guard.unlock();
 }
+
+#endif
