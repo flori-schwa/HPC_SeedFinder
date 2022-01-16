@@ -6,6 +6,7 @@
 #include "include/SlimeChunkPatternFinder.hpp"
 #include "include/perfmeasure.hpp"
 #include "include/SeedGeneratorSequential.hpp"
+#include <omp.h>
 
 #ifdef USE_OPENCL
 #include "include/GPUSlimeChunkFinder.hpp"
@@ -37,13 +38,14 @@ int main(int argc, char** argv) {
         ("s,seed", "Seed to continue at", cxxopts::value<jlong>()->default_value("0"))
         ("w,width", "Width of Search Grid", cxxopts::value<int>()->default_value("40000"))
         ("h,height", "Height of Search Grid", cxxopts::value<int>()->default_value("40000"))
+        ("t,threads", "Number of threads to use", cxxopts::value<int>()->default_value("-1"))
         ("file", "Input File", cxxopts::value<std::string>())
     ;
 
     options.parse_positional({"file"});
 
     jlong seed;
-    int search_width, search_height;
+    int search_width, search_height, threads;
     std::string file;
 
     try {
@@ -53,6 +55,7 @@ int main(int argc, char** argv) {
         seed = results["seed"].as<jlong>();
         search_width = results["width"].as<int>();
         search_height = results["height"].as<int>();
+        threads = results["threads"].as<int>();
     } catch (cxxopts::OptionException& e) {
         std::cerr << e.what() << std::endl;
         return 1;
@@ -134,6 +137,10 @@ int main(int argc, char** argv) {
     }
 
     std::unordered_set<ChunkLocation> results;
+
+    if (threads >= 0) {
+        omp_set_num_threads(threads);
+    }
 
     MEASURE_BEGIN;
     patternFinder.run_until_found(-(search_width / 2), -(search_height / 2), search_width, search_height, &results);
