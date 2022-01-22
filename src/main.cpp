@@ -39,6 +39,7 @@ int main(int argc, char** argv) {
         ("w,width", "Width of Search Grid", cxxopts::value<int>()->default_value("40000"))
         ("h,height", "Height of Search Grid", cxxopts::value<int>()->default_value("40000"))
         ("t,threads", "Number of threads to use", cxxopts::value<int>()->default_value("-1"))
+        ("no-bb", "Do not check for a bounding box")
         ("file", "Input File", cxxopts::value<std::string>())
     ;
 
@@ -46,6 +47,7 @@ int main(int argc, char** argv) {
 
     jlong seed;
     int search_width, search_height, threads;
+    bool nobb;
     std::string file;
 
     try {
@@ -55,6 +57,7 @@ int main(int argc, char** argv) {
         seed = results["seed"].as<jlong>();
         search_width = results["width"].as<int>();
         search_height = results["height"].as<int>();
+        nobb = results["no-bb"].as<bool>();
         threads = results["threads"].as<int>();
     } catch (cxxopts::OptionException& e) {
         std::cerr << e.what() << std::endl;
@@ -114,7 +117,7 @@ int main(int argc, char** argv) {
 
     SeedGeneratorSequential seqSeedGen(seed);
 
-    SlimeChunkPatternFinder patternFinder(&seqSeedGen, slimeChunkFinder, width, height);
+    SlimeChunkPatternFinder patternFinder(&seqSeedGen, slimeChunkFinder, width, height, !nobb);
 
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {

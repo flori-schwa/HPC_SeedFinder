@@ -113,6 +113,8 @@ bool SlimeChunkPatternFinder::search_seed(jlong seed, int offset_x, int offset_z
 #endif
 #ifdef LINE_BY_LINE
 
+    SlimeGrid* patternToSearch;
+
     SlimeGrid patternWithPadding(this->desired_pattern.width + 2, this->desired_pattern.height + 2);
 
     for (int x = 0; x < patternWithPadding.width; ++x) {
@@ -130,6 +132,12 @@ bool SlimeChunkPatternFinder::search_seed(jlong seed, int offset_x, int offset_z
         }
     }
 
+    if (this->check_bounding_box) {
+        patternToSearch = &patternWithPadding;
+    } else {
+        patternToSearch = &this->desired_pattern;
+    }
+
     struct HeaderMatch {
         int origin_x;
         int origin_z;
@@ -144,9 +152,9 @@ bool SlimeChunkPatternFinder::search_seed(jlong seed, int offset_x, int offset_z
 
     CPUSlimeChunkFinder cpuFinder;
 
-#pragma omp parallel for firstprivate(width, height, seed, offset_x, offset_z) shared(matcher, matches_guard, matching_patterns, cpuFinder, patternWithPadding, matches) default(none)
+#pragma omp parallel for firstprivate(width, height, seed, offset_x, offset_z) shared(matcher, matches_guard, matching_patterns, cpuFinder, patternToSearch, matches) default(none)
     for (int z = 0; z < height; ++z) {
-        SlimeGrid check(this->desired_pattern.width + 2, this->desired_pattern.height + 2);
+        SlimeGrid check(this->desired_pattern.width + (this->check_bounding_box ? 2 : 0), this->desired_pattern.height + (this->check_bounding_box ? 2 : 0));
 
         std::vector<size_t> first_line_matches;
 
@@ -158,11 +166,15 @@ bool SlimeChunkPatternFinder::search_seed(jlong seed, int offset_x, int offset_z
         for (size_t match_offset : first_line_matches) {
             int x = (int) match_offset;
 
-            cpuFinder.look_for_slime_chunks_single_thread(seed, offset_x + x - 1,
-                                                          offset_z + z - 1, &check);
+            if (this->check_bounding_box) {
+                cpuFinder.look_for_slime_chunks_single_thread(seed, offset_x + x - 1,
+                                                              offset_z + z - 1, &check);
+            } else {
+                cpuFinder.look_for_slime_chunks_single_thread(seed, offset_x + x, offset_z + z, &check);
+            }
 
-            for (int row = 0; row < patternWithPadding.height; ++row) {
-                if (!check.row_matches(row, 0, &patternWithPadding, row)) {
+            for (int row = 0; row < patternToSearch->height; ++row) {
+                if (!check.row_matches(row, 0, patternToSearch, row)) {
                     goto no_match;
                 }
             }

@@ -13,16 +13,17 @@ class SlimeChunkPatternFinder {
 private:
     ISeedGenerator *seed_generator;
     ISlimeChunkFinder *slime_chunk_finder;
+    bool check_bounding_box;
 
 
 public:
     SlimeGrid desired_pattern;
 
     SlimeChunkPatternFinder(ISeedGenerator *seed_generator, ISlimeChunkFinder *slime_chunk_finder, int pattern_width,
-                            int pattern_height) :
+                            int pattern_height, bool check_bounding_box = false) :
             seed_generator(seed_generator),
             slime_chunk_finder(slime_chunk_finder),
-            desired_pattern(pattern_width, pattern_height) {
+            desired_pattern(pattern_width, pattern_height), check_bounding_box(check_bounding_box) {
 
     }
 
